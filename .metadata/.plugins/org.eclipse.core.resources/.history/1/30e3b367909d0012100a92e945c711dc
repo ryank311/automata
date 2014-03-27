@@ -1,0 +1,216 @@
+package com.king.automata;
+
+import java.util.Timer;
+
+import javax.microedition.khronos.opengles.GL;
+
+import android.app.ActionBar;
+import android.app.Activity;
+import android.app.FragmentManager;
+import android.opengl.GLSurfaceView;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+
+import com.king.automata.config.LevelConfigHolder;
+import com.king.automata.fragment.FailureDialogFragment;
+import com.king.automata.fragment.VictoryDialogFragment;
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.matrix.MatrixTrackingGL;
+import com.king.automata.model.GameBoard;
+import com.king.automata.model.GameState;
+import com.king.automata.model.MoveState;
+import com.king.automata.task.GameUpdateTask;
+import com.king.automata.util.SystemUiHider;
+import com.king.automata.view.GameBoardView;
+
+/**
+ * An example full-screen activity that shows and hides the system UI (i.e.
+ * status bar and navigation/system bar) with user interaction.
+ * 
+ * @see SystemUiHider
+ */
+public class GameActivity extends Activity {
+	
+	public static final String GAME_ACTIVITY_TITLE = "com.king.game.title";
+	private GameBoardView mGLSurfaceView;
+	private GameBoard gameBoard;
+	private Timer gameTimer;
+	private String title = "";
+	LevelConfig currentLevel = null;
+	boolean isFreePlay = true;
+	private static final int UPDATE_INTERVAL = 50;
+	private GameState gameState;
+	private MoveState moveState;
+	private int level;
+	private int realm;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		
+		title = getIntent().getStringExtra(GAME_ACTIVITY_TITLE);
+		level = getIntent().getIntExtra(LevelConfigHolder.SELECTED_LEVEL_VALUE, -1);
+		realm = getIntent().getIntExtra(LevelConfigHolder.SELECTED_REALM_VALUE, -1);
+		if(level >= 0) {
+			currentLevel = LevelConfigHolder.getLevel(realm, level, this);
+		}
+		ActionBar actionBar = getActionBar();
+		actionBar.setTitle(title);
+		isFreePlay = currentLevel == null;
+		gameState = GameState.PAUSE;
+		moveState = MoveState.MOVE;
+		if(isFreePlay) {
+			gameBoard = new GameBoard(null);
+		}
+		else {
+			gameBoard = new GameBoard(currentLevel);
+		}
+        mGLSurfaceView = new GameBoardView(this, gameBoard);
+        mGLSurfaceView.setGLWrapper(new GLSurfaceView.GLWrapper() {
+            public GL wrap(GL gl) {
+                return new MatrixTrackingGL(gl);
+            }
+        });
+        setContentView(mGLSurfaceView);
+        mGLSurfaceView.requestFocus();
+        mGLSurfaceView.setFocusableInTouchMode(true);
+	}
+	
+	@Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.game, menu);
+        return true;
+    }
+
+	@Override
+	protected void onPostCreate(Bundle savedInstanceState) {
+		super.onPostCreate(savedInstanceState);
+	}
+	
+	@Override
+    protected void onResume() {
+        // Ideally a game should implement onResume() and onPause()
+        // to take appropriate action when the activity looses focus
+        super.onResume();
+        mGLSurfaceView.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        // Ideally a game should implement onResume() and onPause()
+        // to take appropriate action when the activity looses focus
+        super.onPause();
+        onClickPause();
+        mGLSurfaceView.onPause();
+    }
+    
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+	        case android.R.id.home:
+				finish();
+				return true;
+        	case R.id.menu_pause:
+        		onClickPause();
+                invalidateOptionsMenu();
+                return true;
+        	case R.id.menu_play:
+        		onClickPlay();
+                invalidateOptionsMenu();
+                return true;
+        	case R.id.menu_edit:
+        		onClickEditMode();
+                invalidateOptionsMenu();
+                return true;
+        	case R.id.menu_move:
+        		onClickMoveMode();
+                invalidateOptionsMenu();
+                return true;
+        	case R.id.menu_restart:
+        		onClickRestart();
+                invalidateOptionsMenu();
+        		return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+    	MenuItem pauseButton = menu.findItem(R.id.menu_pause);
+    	pauseButton.setVisible(GameState.PLAY == gameState);
+    	MenuItem playButton = menu.findItem(R.id.menu_play);
+    	playButton.setVisible(GameState.PAUSE == gameState);
+    	MenuItem moveButton = menu.findItem(R.id.menu_move);
+    	moveButton.setVisible(MoveState.EDIT == moveState);
+    	MenuItem editButton = menu.findItem(R.id.menu_edit);
+    	editButton.setVisible(MoveState.MOVE == moveState);
+    	return true;
+    }
+    
+    public void onClickPause() {
+    	mGLSurfaceView.togglePause(true);
+    	gameState = GameState.PAUSE;
+    	if(gameTimer != null) {
+    		gameTimer.cancel();
+        	gameTimer.purge();
+    	}
+    }
+    
+    public void onClickPlay() {
+    	onClickMoveMode();
+    	mGLSurfaceView.togglePause(false);
+    	gameState = GameState.PLAY;
+    	gameTimer = new Timer();
+    	gameTimer.scheduleAtFixedRate(
+    			new GameUpdateTask(
+    				gameBoard, 
+    				mGLSurfaceView,
+    				this),
+    			0l,
+    			UPDATE_INTERVAL);
+    }
+    
+    public void onClickEditMode() {
+    	onClickPause();
+    	moveState = MoveState.EDIT;
+    	mGLSurfaceView.toggleEditMode(true);
+    }
+    
+    public void onClickMoveMode() {
+    	moveState = MoveState.MOVE;
+    	mGLSurfaceView.toggleEditMode(false);
+    }
+    
+    public void onClickRestart() {
+    	onClickPause();
+    	onClickMoveMode();
+    	mGLSurfaceView.restart();
+    }
+    
+    public void endGame(int stars) {
+    	onClickPause();
+    	FragmentManager fm = getFragmentManager();
+    	if(stars > 0) {
+	    	VictoryDialogFragment dialogFragment = VictoryDialogFragment.newInstance(
+	    			this, realm, level, gameBoard.moves, gameBoard.maxMoves, stars);
+	    	dialogFragment.show(fm,"victory_dialog");
+    	} else {
+    		FailureDialogFragment dialogFragment = FailureDialogFragment.newInstance(
+        			this, title);
+        	dialogFragment.show(fm,"failure_dialog");
+    	}
+    }
+    
+    public void resetForFailure() {
+    	onClickPause();
+    	gameBoard.reset();
+    	mGLSurfaceView.requestRender();
+    }
+    
+    public void processVictory() {
+    	onClickPause();
+    	setResult(RESULT_OK, getIntent());
+    	finish();
+    }
+}

@@ -1,0 +1,283 @@
+package com.king.automata.model;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.microedition.khronos.opengles.GL10;
+
+import com.king.automata.levelconfig.ConfigCell;
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.rules.RuleSet;
+import com.king.automata.rules.RuleSetFactory;
+
+/**
+ * A model of the game board.  Tracks the living
+ * cells and their locations.
+ * 
+ * @author king
+ *
+ */
+public class GameBoard {
+
+	float SCALE = 1f;
+	float CELL_SCALE = 0.5f;
+	float cellScale = CELL_SCALE * 0.9f;
+	float BOARDER = 0.025f;
+    public float startingZoom = -5.0f;
+    LevelConfig currentLevel;
+	
+	ConcurrentHashMap<Location, Cell> livingCells;
+	ConcurrentHashMap<Location, Cell> dyingCells;
+	HashMap<Location, Cell> possibilities;
+	List<Entry<Location, Cell>> tempList;
+	
+	int numCells;
+	
+	private FloatBuffer   mVertexBuffer;
+    private FloatBuffer   mColorBuffer;
+    private ByteBuffer  mIndexBuffer;
+	
+    public GameBoard(LevelConfig currentLevel) {
+    	this.currentLevel = currentLevel;
+		livingCells = new ConcurrentHashMap<Location, Cell>(50, 0.75f, 3);
+		dyingCells = new ConcurrentHashMap<Location, Cell>(20, 0.75f, 3);
+		possibilities = new HashMap<Location, Cell>(30);
+		tempList = new ArrayList<Entry<Location, Cell>>(10);
+		setUpCurrentLevel();
+		
+        float vertices[];
+        
+        if(currentLevel == null || !currentLevel.isHasGameBoard()) {
+        	vertices = new float[]{
+	            0f, 0f, 0,
+	            0f, 0f, 0,
+	            0f,  0f, 0,
+	            0f,  0f, 0,
+	            0f, 0f,  0f,
+	            0f, 0f,  0f,
+	            0f,  0f,  0f,
+	            0f,  0f,  0f,
+	        };
+        }
+        else {
+	        vertices = new float[]{
+	            -((SCALE * CELL_SCALE * numCells) + BOARDER), -((SCALE * CELL_SCALE * numCells) + BOARDER), 0,
+	            ((SCALE * CELL_SCALE * numCells) + BOARDER), -((SCALE * CELL_SCALE * numCells) + BOARDER), 0,
+	            ((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER), 0,
+	            -((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER), 0,
+	            -((SCALE * CELL_SCALE * numCells) + BOARDER), -((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),
+	            ((SCALE * CELL_SCALE * numCells) + BOARDER), -((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),
+	            ((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),
+	            -((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),  ((SCALE * CELL_SCALE * numCells) + BOARDER),
+	        };
+        }
+        float colors[] = {
+                0.9f,    0.9f,    0.9f,  1f,
+                0.9f,    0.9f,    0.9f,  1f,
+                0.9f,  0.9f,    0.9f,  1f,
+                0.9f,  0.9f,    0.9f,  1f,
+                0.9f,    0.9f,  0.9f,  1f,
+                0.9f,    0.9f,  0.9f,  1f,
+                0.9f,  0.9f,  0.9f,  1f,
+                0.9f,  0.9f,  0.9f,  1f,
+        };
+
+        byte indices[] = {
+                    0,3,2,	0,2,1
+        };
+		
+		// Buffers to be passed to gl*Pointer() functions
+        // must be direct, i.e., they must be placed on the
+        // native heap where the garbage collector cannot
+        // move them.
+        //
+        // Buffers with multi-byte datatypes (e.g., short, int, float)
+        // must have their byte order set to native order
+
+        ByteBuffer vbb = ByteBuffer.allocateDirect(vertices.length*4);
+        vbb.order(ByteOrder.nativeOrder());
+        mVertexBuffer = vbb.asFloatBuffer();
+        mVertexBuffer.put(vertices);
+        mVertexBuffer.position(0);
+
+        ByteBuffer cbb = ByteBuffer.allocateDirect(colors.length*4);
+        cbb.order(ByteOrder.nativeOrder());
+        mColorBuffer = cbb.asFloatBuffer();
+        mColorBuffer.put(colors);
+        mColorBuffer.position(0);
+
+        mIndexBuffer = ByteBuffer.allocateDirect(indices.length);
+        mIndexBuffer.put(indices);
+        mIndexBuffer.position(0);
+	}
+    
+    private void setUpCurrentLevel() {
+    	if(currentLevel != null) {
+			this.numCells = currentLevel.getGameBoardSize();
+			this.startingZoom = currentLevel.getZoom();
+			for(ConfigCell configCell : currentLevel.getCells()) {
+				createCell(configCell.getCellLocation(), configCell.getCell().getColor());
+			}
+		} 
+		else {
+			this.numCells = 10;
+		}
+    }
+	
+	/**
+	 * Create a new cell at the given location.
+	 * @param x
+	 * @param y
+	 */
+	public void createCell(
+			Location location,
+			float[] rgb) {
+		Location newLocation = new Location(
+				Math.round(location.x), 
+				Math.round(location.y), 0.0f);
+		//Color the new cells
+		Cell babyCell = new Cell(rgb[0], rgb[1], rgb[2]);
+		synchronized(livingCells) {
+			livingCells.put(newLocation, babyCell);
+		}
+	}
+	
+	/**
+	 * Simulate one turn of the game.
+	 */
+	public void simulateTurn() {
+		possibilities.clear();
+		dyingCells.clear();
+		tempList.clear();
+		RuleSet ruleSet = RuleSetFactory.getRuleSet();
+		
+		//Find all cells that are changing in the living set
+		for(Entry<Location, Cell> entry : livingCells.entrySet()) {
+			if(CellState.FRESH == entry.getValue().cellState) 
+				entry.getValue().cellState = CellState.ALIVE;
+			int numberOfNeighbors = findLiveNeighbors(
+					null, entry.getKey(), livingCells, true);
+			CellState state = ruleSet.getDetermineGameState(
+					entry.getValue().cellState, numberOfNeighbors);
+			if(state != entry.getValue().cellState) {
+				entry.getValue().cellState = state;
+				tempList.add(entry);
+			}
+		}
+		
+		//Check all possibilities for new cells
+		for(Entry<Location, Cell> entry : possibilities.entrySet()) {
+			int numberOfNeighbors = findLiveNeighbors(
+					entry.getValue(), entry.getKey(), livingCells, false);
+			CellState state = ruleSet.getDetermineGameState(
+					entry.getValue().cellState, numberOfNeighbors);
+			if(CellState.ALIVE == state) {
+				entry.getValue().cellState = CellState.FRESH;
+				tempList.add(entry);
+			}
+		}
+		
+		//Process newly changed states.
+		for(Entry<Location, Cell> entry : tempList) {
+			if(CellState.ALIVE == entry.getValue().cellState 
+					|| CellState.FRESH == entry.getValue().cellState) {
+				livingCells.put(entry.getKey(), entry.getValue());
+			}
+			else {
+				entry.getValue().cellState = CellState.DYING;
+				livingCells.remove(entry.getKey());
+				dyingCells.put(entry.getKey(), entry.getValue());
+			}
+		}
+	}
+	
+	private int findLiveNeighbors(
+			Cell currentCell,
+			Location location, 
+			ConcurrentHashMap<Location, Cell> cellsToCheck,
+			boolean usePossibilities) {
+		int numberOfNeighbors = 0;
+		Location tempLocation;
+		float[] newColor = new float[3];
+		for(float i = -1f; i < 2f; i++) {
+			float xCoordinate = location.x + i;
+			
+			for(float j = -1f; j < 2; j++) {
+				if(i == 0f && j == 0f) continue;
+				float yCoordinate = location.y + j;
+				
+				tempLocation = Location.tempLocationFor(xCoordinate, yCoordinate, 0f);
+				Cell neighbor = cellsToCheck.get(tempLocation);
+				if(neighbor != null) {
+					numberOfNeighbors++;
+					if(currentCell != null) {
+						newColor[0] += neighbor.r;
+						newColor[1] += neighbor.g;
+						newColor[2] += neighbor.b;
+					}
+				}
+				else {
+					if(usePossibilities) {
+						neighbor = new Cell(0.1f, 0.1f, 0.8f);
+						neighbor.cellState = CellState.DEAD;
+						possibilities.put(tempLocation.clone(), neighbor);
+					}
+				}
+			}
+		}
+		if(currentCell != null && numberOfNeighbors == 3) {
+			currentCell.setColors(
+					newColor[0] / numberOfNeighbors, 
+					newColor[1] / numberOfNeighbors,
+					newColor[2] / numberOfNeighbors);
+		}
+		return numberOfNeighbors;
+	}
+	
+	public void draw(
+			GL10 gl, float mTranslateX, float mTranslateY, float zoom, 
+			int animationTick) {
+        gl.glTranslatef(mTranslateX, mTranslateY, zoom);
+        gl.glFrontFace(GL10.GL_CW);
+        gl.glVertexPointer(3, GL10.GL_FLOAT, 0, mVertexBuffer);
+        gl.glColorPointer(4, GL10.GL_FLOAT, 0, mColorBuffer);
+        gl.glDrawElements(GL10.GL_TRIANGLES, 6, GL10.GL_UNSIGNED_BYTE, mIndexBuffer);
+        
+        for(Entry<Location, Cell> entry : livingCells.entrySet()) {
+        	Location location = entry.getKey();
+        	Cell cell = entry.getValue();
+        	gl.glLoadIdentity();
+            gl.glTranslatef(mTranslateX, mTranslateY, zoom);
+    		gl.glTranslatef(location.x, location.y, location.z + 0.01f);
+    		gl.glScalef(cellScale, cellScale, 1f);
+    		cell.draw(gl, animationTick);
+        }
+        
+        for(Entry<Location, Cell> entry : dyingCells.entrySet()) {
+        	Location location = entry.getKey();
+        	Cell cell = entry.getValue();
+        	gl.glLoadIdentity();
+            gl.glTranslatef(mTranslateX, mTranslateY, zoom);
+    		gl.glTranslatef(location.x, location.y, location.z + 0.01f);
+    		gl.glScalef(cellScale, cellScale, 1f);
+    		cell.draw(gl, animationTick);
+        }
+    }
+	
+	/**
+	 * Reset the game board to its original state.
+	 */
+	public void reset() {
+		livingCells.clear();
+		dyingCells.clear();
+		possibilities.clear();
+		tempList.clear();
+		
+	}
+}

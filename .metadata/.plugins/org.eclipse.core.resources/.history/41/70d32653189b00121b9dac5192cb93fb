@@ -1,0 +1,41 @@
+package com.king.automata.task;
+
+import java.util.TimerTask;
+
+import com.king.automata.GameActivity;
+import com.king.automata.model.GameBoard;
+import com.king.automata.view.GameBoardView;
+
+public class GameUpdateTask extends TimerTask {
+
+	protected GameBoard gameBoard;
+	protected GameBoardView gameBoardView;
+	protected GameActivity gameActivity;
+	protected int interval = 15;
+	
+	public GameUpdateTask(
+			GameBoard gameBoard, 
+			GameBoardView gameBoardView,
+			GameActivity activity) {
+		this.gameBoard = gameBoard;
+		this.gameBoardView = gameBoardView;
+		this.gameActivity = activity;
+	}
+	
+	@Override
+	public void run() {
+		int tick = gameBoardView.getRenderer().tick;
+		if(tick > interval) {
+			if(gameBoard.useCounter 
+				&& gameBoard.counter == 0
+				&& gameActivity != null) {
+				
+			}
+			gameBoard.simulateTurn();
+			gameBoardView.getRenderer().tick = 0;
+		}
+		gameBoardView.requestRender();
+		gameBoardView.getRenderer().tick++;
+	}
+
+}

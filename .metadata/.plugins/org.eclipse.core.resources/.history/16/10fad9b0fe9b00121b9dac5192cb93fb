@@ -1,0 +1,36 @@
+package com.king.automata.levelconfig;
+
+import org.simpleframework.xml.Element;
+import org.simpleframework.xml.Root;
+
+@Root
+public class SurvivalConfig {
+
+	@Element
+	protected int oneStarRange;
+	@Element
+	protected int twoStarRange;
+	@Element
+	protected int threeStarRange;
+	
+	
+	public int getOneStarRange() {
+		return oneStarRange;
+	}
+	public void setOneStarRange(int oneStarRange) {
+		this.oneStarRange = oneStarRange;
+	}
+	public int getTwoStarRange() {
+		return twoStarRange;
+	}
+	public void setTwoStarRange(int twoStarRange) {
+		this.twoStarRange = twoStarRange;
+	}
+	public int getThreeStarRange() {
+		return threeStarRange;
+	}
+	public void setThreeStarRange(int threeStarRange) {
+		this.threeStarRange = threeStarRange;
+	}
+	
+}

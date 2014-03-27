@@ -1,0 +1,13 @@
+package com.king.automata.rules;
+
+import com.king.automata.model.GameBoard;
+
+public class EscapeVictoryCondition implements VictoryConditionSet {
+
+	@Override
+	public int isVictorious(GameBoard gameBoard) {
+		
+		return 0;
+	}
+
+}

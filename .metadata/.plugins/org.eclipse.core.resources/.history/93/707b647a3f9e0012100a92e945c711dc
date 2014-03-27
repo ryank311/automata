@@ -1,0 +1,170 @@
+package com.king.automata.graphics;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
+
+import android.content.Context;
+import android.opengl.GLSurfaceView;
+
+import com.king.automata.graphics.text.GLText;
+import com.king.automata.matrix.Ray;
+import com.king.automata.model.GameBoard;
+
+public class GameBoardRenderer implements GLSurfaceView.Renderer{
+
+	public GL10 glContext;
+	int width, height;
+	GLText glText;
+	Context appContext;
+
+	GameBoard gameBoard;
+	
+	float ratio;
+
+	public float mTranslateX;
+	public float mTranslateY;
+	public float zoom;
+	public float[] clearColor;
+
+	public int tick = 0;
+
+	public float MAX_ZOOM = -2f;
+	public float MIN_ZOOM = -20f;
+
+	public GameBoardRenderer(Context appContext, GameBoard gameBoard) {
+		this.gameBoard = gameBoard;
+		clearColor = new float[] {1f, 1f, 1f, 1f};
+		zoom = gameBoard.startingZoom;
+		this.appContext = appContext;
+	}
+
+	@Override
+	public void onDrawFrame(GL10 gl) {
+		/*
+		 * Usually, the first thing one might want to do is to clear
+		 * the screen. The most efficient way of doing this is to use
+		 * glClear().
+		 */
+		synchronized(glContext) {
+			glContext = gl;
+			gl.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+			gl.glMatrixMode(GL10.GL_MODELVIEW);
+			gl.glLoadIdentity();
+			gl.glEnableClientState(GL10.GL_VERTEX_ARRAY);
+			gl.glEnableClientState(GL10.GL_COLOR_ARRAY);
+			gameBoard.draw(gl, mTranslateX, mTranslateY, zoom, tick);
+			gl.glDisableClientState(GL10.GL_VERTEX_ARRAY);
+			gl.glDisableClientState(GL10.GL_COLOR_ARRAY);
+			
+			if(gameBoard.useCounter) {
+				drawText(gl);
+			}
+		}
+	}
+	
+	private void drawText(GL10 gl) {
+		gl.glEnable( GL10.GL_TEXTURE_2D );              // Enable Texture Mapping
+	    gl.glEnable( GL10.GL_BLEND );                   // Enable Alpha Blend
+	    gl.glBlendFunc( GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA );  // Set Alpha Blend Function
+		
+	    //Draw text for the game counter
+		gl.glLoadIdentity();
+		if(width < height) {
+			gl.glTranslatef(4.8f * ratio, -5.5f, -6f);
+		}
+		else {
+			gl.glTranslatef(5.2f, -1.60f / ratio, -6f);
+		}
+	    gl.glScalef(0.01f, 0.01f, 1f);
+	    glText.begin( 0.4f, 0.4f, 0.4f, 1.0f );
+		glText.drawC(gameBoard.counter + "/" + gameBoard.maxCounter, 0f, 0f, 0f); 
+		glText.end();
+		
+		//Draw text for the moves counter
+		gl.glLoadIdentity();
+		if(width < height) {
+		    gl.glTranslatef(-4.8f * ratio, -5.5f, -6f);
+		}
+		else {
+		    gl.glTranslatef(-5.2f, -1.60f / ratio, -6f);
+		}
+	    gl.glScalef(0.01f, 0.01f, 1f);
+	    glText.begin( 0.4f, 0.4f, 0.4f, 1.0f );
+		glText.drawC(gameBoard.moves + "/" + gameBoard.maxMoves, 0f, 0f, 0f); 
+		glText.end();
+		// disable texture + alpha
+	    gl.glDisable( GL10.GL_BLEND );                  // Disable Alpha Blend
+	    gl.glDisable( GL10.GL_TEXTURE_2D );             // Disable Texture Mapping
+	}
+
+	@Override
+	public void onSurfaceChanged(GL10 gl, int width, int height) {
+		synchronized(glContext) {
+			glContext = gl;
+			this.width = width;
+			this.height = height;
+
+			gl.glViewport(0, 0, width, height);
+
+			/*
+			 * Set our projection matrix. This doesn't have to be done
+			 * each time we draw, but usually a new projection needs to
+			 * be set when the viewport is resized.
+			 */
+
+			gl.glMatrixMode(GL10.GL_PROJECTION);
+			gl.glLoadIdentity();
+			if(width < height) {
+				ratio = (float) width / height;
+				gl.glFrustumf(-ratio, ratio, -1, 1, 1f, 40f);
+			}
+			else { 
+				ratio = (float) height / width;
+				gl.glFrustumf(-1f, 1f, -ratio, ratio, 1f, 40f);
+			}
+			
+			
+		}
+	}
+
+	@Override
+	public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+		glContext = gl;
+		/*
+		 * By default, OpenGL enables features that improve quality
+		 * but reduce performance. One might want to tweak that
+		 * especially on software renderer.
+		 */
+		//gl.glDisable(GL10.GL_DITHER);
+		//gl.glEnable(GL10.GL_CULL_FACE);
+		/*
+		 * Some one-time OpenGL initialization can be made here
+		 * probably based on features of this particular context
+		 */	
+		/*gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT,
+				GL10.GL_FASTEST);*/
+
+		gl.glClearColor(clearColor[0],clearColor[1],clearColor[2],clearColor[3]);
+		// Create the GLText
+		glText = new GLText(gl, appContext.getAssets());
+
+		// Load the font from file (set size + padding), creates the texture
+		// NOTE: after a successful call to this the font is ready for rendering!
+		glText.load( "Roboto-Regular.ttf", 48, 2, 2 );  // Create Font (Height: 14 Pixels / X+Y Padding 2 Pixels)
+	}
+
+	public void incrementZoom(float zoomIncrement) {
+		zoom += zoomIncrement;
+		if(zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+		if(zoom > MAX_ZOOM) zoom = MAX_ZOOM;
+	}
+
+	public Ray getTouchRay(float x, float y) {
+		synchronized(glContext) {
+			glContext.glLoadIdentity();
+			return new Ray(glContext, width, height, x, y,
+					mTranslateX, mTranslateY, zoom);
+		}
+	}
+
+}

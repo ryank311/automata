@@ -1,0 +1,16 @@
+package com.king.automata.rules;
+
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.levelconfig.SurvivalConfig;
+import com.king.automata.model.GameBoard;
+
+public class EscapeVictoryCondition implements VictoryConditionSet {
+
+	@Override
+	public int isVictorious(GameBoard gameBoard) {
+		LevelConfig currentLevel = gameBoard.currentLevel;
+		VictoryConfig survivalConfig = currentLevel.getSurvivalConfig();
+		return 0;
+	}
+
+}

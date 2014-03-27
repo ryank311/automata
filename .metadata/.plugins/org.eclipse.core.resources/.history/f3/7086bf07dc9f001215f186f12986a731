@@ -1,0 +1,58 @@
+package com.king.automata.config;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import org.simpleframework.xml.Serializer;
+import org.simpleframework.xml.core.Persister;
+
+import android.content.Context;
+
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.levelconfig.LevelGroup;
+import com.king.automata.levelconfig.LevelsConfig;
+
+public class ConfigHolder {
+	
+	private static LevelsConfig levelsConfig;
+	public static final String SELECTED_REALM_VALUE = "com.king.automata.selected.realm.value";
+	public static final String SELECTED_LEVEL_VALUE = "com.king.automata.selected.level.value";
+	
+	private ConfigHolder(){};
+	
+	private static synchronized LevelsConfig getLevelConfig(Context appContext, int realm) {
+		if(levelsConfig == null) {
+	        try {
+				Serializer serializer = new Persister();
+				InputStream source = appContext.getAssets().open("levelconfig/levels.xml");
+				levelsConfig = serializer.read(LevelsConfig.class, source);
+			} catch (IOException e) {
+				e.printStackTrace();
+				//Fail
+			} catch (Exception e) {
+				//Failed to parse
+				e.printStackTrace();
+			}
+		}
+		return levelsConfig;
+	}
+	
+	private 
+	
+	public static LevelGroup getLevelGroup(int realm, Context appContext) {
+		LevelsConfig levelsConfig = getLevelConfig(appContext);
+		return levelsConfig.getLevelGroups().get(realm);
+	}
+	
+	public static LevelConfig getLevel(int realm, int level, Context appContext) {
+		LevelsConfig levelsConfig = getLevelConfig(appContext);
+		return levelsConfig.getLevelGroups().get(realm).getLevels().get(level);
+	}
+	
+	public static String getLevelName(int realm, int level) {
+		return "Level " 
+    			+ (realm + 1) + " - " 
+    			+ (level + 1 );
+	}
+	
+}

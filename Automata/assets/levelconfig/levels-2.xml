@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LevelGroup>
+    <victoryConditionsText>Finish with at least %d escaped cells</victoryConditionsText>
+    <dialogText1>You finished with %d out of %d moves remaining</dialogText1>
+    <dialogText2>You finished with %d out of %d total cells on the board</dialogText2>
+    <levels>
+	    <LevelConfig>
+	         <levelName>The Diamond Heist</levelName>
+	         <hasGameBoard>true</hasGameBoard>
+	         <gameBoardSize>3</gameBoardSize>
+	         <moves>1</moves>
+	         <useCounter>true</useCounter>
+	         <counter>5</counter>
+	         <goalType>ESCAPE</goalType>
+	         <escapeConfig>
+	             <oneStarRange>1</oneStarRange>
+	             <twoStarRange>2</twoStarRange>
+	             <threeStarRange>3</threeStarRange>
+	         </escapeConfig>
+	         <description>Help your cells escape the game board before the timer runs out.</description>
+	         <zoom>-3f</zoom>
+	         <cells>
+	            <ConfigCell>
+	                 <cellLocation>
+	                     <x>-1</x>
+	                     <y>-1.0</y>
+	                     <z>0.0</z>
+	                 </cellLocation>
+	                 <cell>
+	                    <red>0.1</red>
+						<green>0.1</green>
+						<blue>0.7</blue>
+	                 </cell>
+	             </ConfigCell>
+	             <ConfigCell>
+	                 <cellLocation>
+	                     <x>-1.0</x>
+	                     <y>1</y>
+	                     <z>0.0</z>
+	                 </cellLocation>
+	                 <cell>
+	                    <red>0.1</red>
+						<green>0.1</green>
+						<blue>0.7</blue>
+	                 </cell>
+	             </ConfigCell>
+	             <ConfigCell>
+	                 <cellLocation>
+	                     <x>-1.0</x>
+	                     <y>2</y>
+	                     <z>0.0</z>
+	                 </cellLocation>
+	                 <cell>
+	                    <red>0.1</red>
+						<green>0.1</green>
+						<blue>0.7</blue>
+	                 </cell>
+	             </ConfigCell>
+	         </cells>
+	    </LevelConfig>
+    </levels>
+</LevelGroup>

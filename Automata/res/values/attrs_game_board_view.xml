@@ -1,0 +1,6 @@
+<resources>
+
+    <declare-styleable name="GameBoardView">
+    </declare-styleable>
+
+</resources>

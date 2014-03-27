@@ -1,0 +1,39 @@
+package com.king.automata.data;
+
+import android.net.Uri;
+
+/**
+ * Class to represent the service contract for a level's status.
+ * @author king
+ */
+public final class LevelStatus {
+	
+	public static final String AUTHORITY = "com.king.automata.LevelStatus";
+	
+	public static final String SCORES_TABLE_NAME = "SCORES";
+	
+	/**
+     * The scheme part for this provider's URI
+     */
+    private static final String SCHEME = "content://";
+    
+    /**
+     * Path part for the Notes URI
+     */
+    private static final String PATH_LEVEL_SCORES = "/scores";
+    
+    /**
+     * Path part for the Note ID URI
+     */
+    private static final String PATH_LEVEL_ID = "/scores/";
+    
+    /**
+     * The content:// style URL for this table
+     */
+    public static final Uri CONTENT_URI =  Uri.parse(SCHEME + AUTHORITY + PATH_LEVEL_SCORES);
+
+	
+	private LevelStatus(){}
+	
+	
+}

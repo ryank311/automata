@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RealmsConfig>
+    <realms>
+        <RealmConfig>
+            <configFileName>levelconfig/levels-1.xml</configFileName>
+            <realm>0</realm>
+        </RealmConfig>
+        <RealmConfig>
+            <configFileName>levelconfig/levels-2.xml</configFileName>
+            <realm>1</realm>
+        </RealmConfig>
+    </realms>
+</RealmsConfig>

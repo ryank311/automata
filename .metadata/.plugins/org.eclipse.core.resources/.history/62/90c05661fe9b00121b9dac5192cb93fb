@@ -1,0 +1,15 @@
+package com.king.automata.rules;
+
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.model.GameBoard;
+
+public class SurvivalVictoryCondition implements VictoryConditionSet {
+
+	@Override
+	public boolean isVictorious(GameBoard gameBoard) {
+		LevelConfig currentLevel = gameBoard.currentLevel;
+		
+		return true;
+	}
+
+}

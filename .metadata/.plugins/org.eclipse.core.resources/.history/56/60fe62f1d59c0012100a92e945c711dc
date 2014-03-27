@@ -1,0 +1,77 @@
+package com.king.automata;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.v4.app.NavUtils;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.ListView;
+
+import com.king.automata.config.LevelConfigHolder;
+import com.king.automata.view.adapter.LevelAdapter;
+
+public class LevelSelectActivity extends Activity {
+
+	int currentRealm;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_level_select);
+		currentRealm = getIntent().getIntExtra(LevelConfigHolder.SELECTED_REALM_VALUE, 0);
+		
+		// Show the Up button in the action bar.
+		setupActionBar();
+		ListView gridview = (ListView) findViewById(R.id.level_select_list);
+		gridview.setAdapter(new LevelAdapter(this, currentRealm));
+		final Activity context = this;
+		gridview.setOnItemClickListener(new OnItemClickListener() {
+	        public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
+	        	Intent target = new Intent(context, GameActivity.class);
+	        	target.putExtra(LevelConfigHolder.SELECTED_REALM_VALUE, currentRealm);
+	        	target.putExtra(LevelConfigHolder.SELECTED_LEVEL_VALUE, position);
+	        	target.putExtra(GameActivity.GAME_ACTIVITY_TITLE, 
+	        			LevelConfigHolder.getLevelName(currentRealm, position));
+	            startActivity(target);
+	        }
+	    });
+	}
+
+	/**
+	 * Set up the {@link android.app.ActionBar}.
+	 */
+	private void setupActionBar() {
+
+		getActionBar().setDisplayHomeAsUpEnabled(true);
+
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.level_select, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case android.R.id.home:
+			// This ID represents the Home or Up button. In the case of this
+			// activity, the Up button is shown. Use NavUtils to allow users
+			// to navigate up one level in the application structure. For
+			// more details, see the Navigation pattern on Android Design:
+			//
+			// http://developer.android.com/design/patterns/navigation.html#up-vs-back
+			//
+			NavUtils.navigateUpFromSameTask(this);
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+
+}

@@ -1,0 +1,5 @@
+package com.king.automata.data;
+
+public class LevelStatusCommands {
+
+}

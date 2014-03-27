@@ -1,0 +1,30 @@
+package com.king.automata.levelconfig;
+
+import org.simpleframework.xml.Element;
+import org.simpleframework.xml.Root;
+
+@Root
+public class RealmConfig {
+	
+	@Element
+	private String configFileName;
+	
+	@Element
+	private int realm;
+
+	public String getConfigFileName() {
+		return configFileName;
+	}
+
+	public void setConfigFileName(String configFileName) {
+		this.configFileName = configFileName;
+	}
+
+	public int getRealm() {
+		return realm;
+	}
+
+	public void setRealm(int realm) {
+		this.realm = realm;
+	}
+}

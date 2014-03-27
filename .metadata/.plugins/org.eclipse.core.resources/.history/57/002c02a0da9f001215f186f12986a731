@@ -1,0 +1,14 @@
+package com.king.automata.levelconfig;
+
+import org.simpleframework.xml.Element;
+import org.simpleframework.xml.Root;
+
+@Root
+public class RealmConfig {
+	
+	@Element
+	private String configFileName;
+	
+	@Element
+	private int realm;
+}

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RealmsConfig>
+    <realms>
+        <RealmConfig>
+	        <groupName>Survival</groupName>
+	        <color>FF1122CC</color>
+            <configFileName>levelconfig/levels-1.xml</configFileName>
+            <realm>0</realm>
+        </RealmConfig>
+        <RealmConfig>
+	        <groupName>Escape</groupName>
+	        <color>FF22BB22</color>
+            <configFileName>levelconfig/levels-2.xml</configFileName>
+            <realm>1</realm>
+        </RealmConfig>
+    </realms>
+</RealmsConfig>

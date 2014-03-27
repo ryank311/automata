@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<typeInfoHistroy>
+<typeInfo handle="=Automata/C:\/Users\/king\/Downloads\/adt-bundle-windows-x86_64-20130219\/adt-bundle-windows-x86_64-20130219\/sdk\/platforms\/android-17\/android.jar&lt;java.util(TimerTask.class[TimerTask" modifiers="1057" timestamp="1360755184000"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.rules{RuleSet.java[RuleSet" modifiers="513" timestamp="1364174144003"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.model{Cell.java[Cell" modifiers="1" timestamp="1364784307149"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata{HomeActivity.java[HomeActivity" modifiers="1" timestamp="1365123635347"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata{LevelGroupSelectActivity.java[LevelGroupSelectActivity" modifiers="1" timestamp="1365123948541"/>
+<typeInfo handle="=Automata/C:\/Users\/king\/Downloads\/adt-bundle-windows-x86_64-20130219\/adt-bundle-windows-x86_64-20130219\/sdk\/platforms\/android-17\/android.jar&lt;android.widget(BaseAdapter.class[BaseAdapter" modifiers="1057" timestamp="1360755184000"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.view{GameBoardView.java[GameBoardView" modifiers="1" timestamp="1365198558791"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.task{GameUpdateTask.java[GameUpdateTask" modifiers="1" timestamp="1364953179823"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.rules{VictoryConditionSet.java[VictoryConditionSet" modifiers="513" timestamp="1364952780875"/>
+<typeInfo handle="=Automata/C:\/Users\/king\/Downloads\/adt-bundle-windows-x86_64-20130219\/adt-bundle-windows-x86_64-20130219\/sdk\/platforms\/android-17\/android.jar&lt;android.database.sqlite(SQLiteOpenHelper.class[SQLiteOpenHelper" modifiers="1057" timestamp="1360755184000"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.data{LevelStatus.java[LevelStatus" modifiers="17" timestamp="1365122083291"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.fragment{VictoryDialogFragment.java[VictoryDialogFragment" modifiers="1" timestamp="1365125770484"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.model{GameBoard.java[GameBoard" modifiers="1" timestamp="1365128225596"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.levelconfig{LevelConfig.java[LevelConfig" modifiers="1" timestamp="1365125660772"/>
+<typeInfo handle="=Automata/src&lt;com.king.automata.graphics{GameBoardRenderer.java[GameBoardRenderer" modifiers="1" timestamp="1365200106808"/>
+</typeInfoHistroy>

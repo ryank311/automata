@@ -1,0 +1,197 @@
+package com.king.automata.view;
+
+import java.util.Random;
+
+import android.content.Context;
+import android.opengl.GLSurfaceView;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+
+import com.king.automata.graphics.GameBoardRenderer;
+import com.king.automata.matrix.Ray;
+import com.king.automata.model.GameBoard;
+import com.king.automata.model.Location;
+
+/**
+ * A custom view for the board of the game
+ * @author king
+ *
+ */
+public class GameBoardView extends GLSurfaceView {
+	
+	private final float TOUCH_SCALE_FACTOR = -0.0018f;
+	private final float ZOOM_FACTOR = 0.01f;
+    private final float TRACKBALL_SCALE_FACTOR = 36.0f;
+    private float mPreviousX;
+    private float mPreviousY;
+    private int finger1id = 0;
+    private float mPreviousDistance;
+
+    private Random rng;
+    private float[] currentColors;
+    
+    GameBoard gameBoard;
+    
+    private boolean editMode = false;
+    
+    private GameBoardRenderer mRenderer;
+    
+    public GameBoardView(Context context) {
+    	this(context, (GameBoard)null);
+    	
+    }
+    
+	public GameBoardView(
+			Context context, GameBoard gameBoard) {
+        super(context);
+        init(context, gameBoard);
+    }
+	
+	public GameBoardView(Context context, AttributeSet attributes) {
+		super(context, attributes);
+	}
+	
+	protected void init(Context context, GameBoard gameboard) {
+		setKeepScreenOn(true);
+		rng = new Random();
+        this.gameBoard = gameboard;
+        mRenderer = new GameBoardRenderer(context, gameboard);
+        setRenderer(mRenderer);
+        setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+	}
+	
+	@Override public boolean onTrackballEvent(MotionEvent e) {
+        mRenderer.mTranslateX += e.getX() * TRACKBALL_SCALE_FACTOR;
+        mRenderer.mTranslateY -= e.getY() * TRACKBALL_SCALE_FACTOR;
+        requestRender();
+        return true;
+    }
+
+    @Override public boolean onTouchEvent(MotionEvent e) {
+    	if(editMode)
+    		return processEditMode(e);
+    	else
+    		return processMoveMode(e);
+    }
+    
+    /**
+     * Helper to handle the touch events when in edit mode.
+     * @param e
+     * @return
+     */
+    private boolean processEditMode(MotionEvent e) {
+    	float x = e.getX();
+    	float y = e.getY();
+    	switch (e.getAction()) {
+    		case MotionEvent.ACTION_DOWN:
+    			currentColors = new float[3];
+    			currentColors[0] = rng.nextFloat();
+    			currentColors[1] = rng.nextFloat();
+    			currentColors[2] = rng.nextFloat();
+        	case MotionEvent.ACTION_MOVE:
+        		Ray touchRay = mRenderer.getTouchRay(x, y);
+        		Location touchLocation = touchRay.getClick(mRenderer.zoom);
+        		touchLocation.x -= mRenderer.mTranslateX;
+        		touchLocation.y -= mRenderer.mTranslateY;
+        		float negativeWidth = gameBoard.boardWidth * -1f;
+        		if(gameBoard.isDisplayed 
+        				|| (touchLocation.x < gameBoard.boardWidth
+        				&& touchLocation.y < gameBoard.boardWidth
+        				&& touchLocation.x > negativeWidth
+        				&& touchLocation.y > negativeWidth))
+	        		gameBoard.createCell(
+	        				touchLocation,
+	        				currentColors);
+                requestRender();
+                break;
+    	}
+    	return true;
+    }
+    
+    /**
+     * Helper method to process a movement mode request.
+     * @param e
+     * @return
+     */
+    private boolean processMoveMode(MotionEvent e) {
+    	int pointerCount = e.getPointerCount();
+        int fingerId = e.getPointerId(0);
+    	float x1 = e.getX(0);
+        float y1 = e.getY(0);
+        int distance = 0;
+        
+        if(pointerCount > 1) {
+            float x2 = e.getX(1); 
+            float y2 = e.getY(1);
+        	distance = approxDistance((int)(x1 - x2), (int)(y1 - y2));
+        }
+        
+        switch (e.getAction()) {
+	        case MotionEvent.ACTION_MOVE:
+	            
+	            if(pointerCount > 1) {
+	            	float dz = distance - mPreviousDistance;
+	            	mRenderer.incrementZoom(dz * ZOOM_FACTOR);
+	            	mPreviousDistance = distance;
+	            }
+	            else if(fingerId == finger1id){
+	            	float dx = x1 - mPreviousX;
+		            float dy = y1 - mPreviousY;
+		            mRenderer.mTranslateX += dx * TOUCH_SCALE_FACTOR * mRenderer.zoom;
+		            mRenderer.mTranslateY -= dy * TOUCH_SCALE_FACTOR * mRenderer.zoom;
+	            }
+	            requestRender();
+	            
+        }
+        if(pointerCount > 1) {
+        	mPreviousDistance = distance;
+        }
+
+    	mPreviousX = x1;
+        mPreviousY = y1;
+        finger1id = fingerId;
+        return true;
+    }
+    
+    public void togglePause(boolean status) {
+    	
+    }
+    
+    public void toggleEditMode(boolean status) {
+    	editMode = status;
+    }
+    
+    public void restart() {
+    	gameBoard.reset();
+    	requestRender();
+    }
+    
+    /**
+     * Function to approximate the distance between two fingers.
+     * @param dx
+     * @param dy
+     * @return
+     */
+    private int approxDistance(int dx, int dy) {
+    	int min, max, approx;
+	    if ( dx < 0 ) dx = -dx;
+	    if ( dy < 0 ) dy = -dy;
+	    if ( dx < dy ) {
+	       min = dx;
+	       max = dy;
+	    } else {
+	       min = dy;
+	       max = dx;
+	    }
+	    approx = ( max * 1007 ) + ( min * 441 );
+	    if ( max < ( min << 4 ))
+	       approx -= ( max * 40 );
+	
+	    // add 512 for proper rounding
+	    return (( approx + 512 ) >> 10 );
+    }
+    
+    public GameBoardRenderer getRenderer() {
+    	return mRenderer;
+    }
+}

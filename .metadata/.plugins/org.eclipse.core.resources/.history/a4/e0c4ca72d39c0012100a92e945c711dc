@@ -1,0 +1,8 @@
+package com.king.automata.data;
+
+public class LevelStatusCommands {
+
+	public static void insertOrUpdate() {
+		
+	}
+}

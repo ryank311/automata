@@ -1,0 +1,6 @@
+package com.king.automata.levelconfig;
+
+@Root
+public class SurvivalConfig {
+
+}

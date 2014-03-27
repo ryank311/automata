@@ -1,0 +1,72 @@
+package com.king.automata.view.adapter;
+
+import java.util.Locale;
+
+import android.app.Activity;
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.RatingBar;
+import android.widget.TextView;
+
+import com.king.automata.R;
+import com.king.automata.config.ConfigHolder;
+import com.king.automata.data.LevelStatusCommands;
+import com.king.automata.levelconfig.LevelConfig;
+import com.king.automata.levelconfig.LevelGroup;
+
+public class LevelAdapter extends BaseAdapter {
+	Context appContext;
+	int realm;
+	
+	public LevelAdapter(Context appContext, int realm) {
+		this.appContext = appContext;
+		this.realm = realm;
+	}
+	
+	@Override
+	public int getCount() {
+		return ConfigHolder.getLevelGroup(realm, appContext)
+				.getLevels().size();
+	}
+
+	@Override
+	public Object getItem(int position) {
+		return null;
+	}
+
+	@Override
+	public long getItemId(int position) {
+		return 0;
+	}
+
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		View levelSelectItem = null;
+		if(convertView == null) {
+			levelSelectItem = (View) LayoutInflater.from(appContext).inflate(
+					R.layout.level_select_item, null);
+		} else {
+			levelSelectItem = convertView;
+		}
+		LevelGroup levelGroup = ConfigHolder.getLevelGroup(realm, appContext);
+		LevelConfig level = levelGroup.getLevels().get(position);
+		
+		TextView titleLabel = (TextView) levelSelectItem.findViewById(R.id.level_name);
+		titleLabel.setText(level.getLevelName());
+		TextView minCells = (TextView) levelSelectItem.findViewById(R.id.level_minimum_cells);
+		minCells.setText(String.format(
+				Locale.US, 
+				levelGroup.getVictoryConditionsText(), 
+				level.getMinimumCellCount()));
+		TextView levelLabel = (TextView) levelSelectItem.findViewById(R.id.level_description);
+		levelLabel.setText(level.getDescription());
+		RatingBar ratingBar = (RatingBar) levelSelectItem.findViewById(R.id.level_rating);
+		int progress = LevelStatusCommands.getLevelProgress((Activity)appContext, realm, position);
+		ratingBar.setProgress(progress);
+		return levelSelectItem;
+	}
+
+}

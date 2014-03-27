@@ -1,0 +1,357 @@
+package com.king.automata.data;
+
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+
+import android.content.ClipDescription;
+import android.content.ContentProvider;
+import android.content.ContentProvider.PipeDataWriter;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.UriMatcher;
+import android.content.res.AssetFileDescriptor;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteQueryBuilder;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+
+public class LevelStatusProvider extends ContentProvider implements PipeDataWriter<Cursor> {
+	
+	/**
+     * A projection map used to select columns from the database
+     */
+	private static HashMap<String, String> sScoresProjectionMap;
+	
+	/**
+     * Standard projection for the interesting columns of scores.
+     */
+    private static final String[] READ_SCORES_PROJECTION = new String[] {
+            LevelStatus.COLUMN_NAME_ID,
+            LevelStatus.COLUMN_NAME_SCORE,
+            LevelStatus.COLUMN_NAME_ATTEMPTS
+    };
+    
+    private static final int READ_NOTE_SCORE_INDEX = 1;
+    private static final int READ_NOTE_ATTEMPTS_INDEX = 2;
+    
+    /*
+     * Constants used by the Uri matcher to choose an action based on the pattern
+     * of the incoming URI
+     */
+    // The incoming URI matches the Notes URI pattern
+    private static final int SCORES = 1;
+
+    // The incoming URI matches the Note ID URI pattern
+    private static final int SCORE_ID = 2;
+    
+    /**
+     * A UriMatcher instance
+     */
+    private static final UriMatcher sUriMatcher;
+    
+    //Handle to a new DatabaseHelper.
+    private LevelStatusHelper mOpenHelper;
+    
+    /**
+     * A block that instantiates and sets static objects
+     */
+    static {
+
+        /*
+         * Creates and initializes the URI matcher
+         */
+        // Create a new instance
+        sUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
+
+        // Add a pattern that routes URIs terminated with "notes" to a NOTES operation
+        sUriMatcher.addURI(LevelStatus.AUTHORITY, "scores", SCORES);
+
+        // Add a pattern that routes URIs terminated with "notes" plus an integer
+        // to a note ID operation
+        sUriMatcher.addURI(LevelStatus.AUTHORITY, "scores/*", SCORE_ID);
+        
+        /*
+         * Creates and initializes a projection map that returns all columns
+         */
+
+        // Creates a new projection map instance. The map returns a column name
+        // given a string. The two are usually equal.
+        sScoresProjectionMap = new HashMap<String, String>();
+
+        // Maps the string "_ID" to the column name "_ID"
+        sScoresProjectionMap.put(LevelStatus.COLUMN_NAME_ID, LevelStatus.COLUMN_NAME_ID);
+
+        // Maps "title" to "title"
+        sScoresProjectionMap.put(LevelStatus.COLUMN_NAME_SCORE, LevelStatus.COLUMN_NAME_SCORE);
+
+        // Maps "note" to "note"
+        sScoresProjectionMap.put(LevelStatus.COLUMN_NAME_ATTEMPTS, LevelStatus.COLUMN_NAME_ATTEMPTS);
+    }
+    
+    @Override
+	public boolean onCreate() {
+    	mOpenHelper = new LevelStatusHelper(getContext());
+		return true;
+	}
+	
+    @Override
+	public Cursor query(Uri uri, String[] projection, String selection,
+			String[] selectionArgs, String sortOrder) {
+    	// Constructs a new query builder and sets its table name
+        SQLiteQueryBuilder qb = new SQLiteQueryBuilder();
+        qb.setTables(LevelStatus.SCORES_TABLE_NAME);
+        
+        /**
+         * Choose the projection and adjust the "where" clause based on URI pattern-matching.
+         */
+        switch (sUriMatcher.match(uri)) {
+            // If the incoming URI is for notes, chooses the Notes projection
+            case SCORES:
+                qb.setProjectionMap(sScoresProjectionMap);
+                break;
+            case SCORE_ID:
+                qb.setProjectionMap(sScoresProjectionMap);
+                qb.appendWhere(
+                        LevelStatus.COLUMN_NAME_ID +    // the name of the ID column
+                        "=" +
+                        // the position of the note ID itself in the incoming URI
+                        uri.getPathSegments().get(LevelStatus.SCORE_ID_PATH_POSITION));
+            	break;
+            default:
+                // If the URI doesn't match any of the known patterns, throw an exception.
+                throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+        
+        // Opens the database object in "read" mode, since no writes need to be done.
+        SQLiteDatabase db = mOpenHelper.getReadableDatabase();
+        
+        /*
+         * Performs the query. If no problems occur trying to read the database, then a Cursor
+         * object is returned; otherwise, the cursor variable contains null. If no records were
+         * selected, then the Cursor object is empty, and Cursor.getCount() returns 0.
+         */
+        Cursor c = qb.query(
+            db,            // The database to query
+            projection,    // The columns to return from the query
+            selection,     // The columns for the where clause
+            selectionArgs, // The values for the where clause
+            null,          // don't group the rows
+            null,          // don't filter by row groups
+            null        // The sort order
+        );
+        
+        // Tells the Cursor what URI to watch, so it knows when its source data changes
+        c.setNotificationUri(getContext().getContentResolver(), uri);
+        return c;
+	}
+    
+    @Override
+	public String getType(Uri uri) {
+    	/**
+         * Chooses the MIME type based on the incoming URI pattern
+         */
+        switch (sUriMatcher.match(uri)) {
+
+            // If the pattern is for notes or live folders, returns the general content type.
+            case SCORES:
+                return LevelStatus.CONTENT_TYPE;
+
+            // If the pattern is for note IDs, returns the note ID content type.
+            case SCORE_ID:
+                return LevelStatus.CONTENT_ITEM_TYPE;
+
+            // If the URI pattern doesn't match any permitted patterns, throws an exception.
+            default:
+                throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+	}
+    
+    /**
+     * This describes the MIME types that are supported for opening a note
+     * URI as a stream.
+     */
+    static ClipDescription SCORE_STREAM_TYPES = new ClipDescription(null,
+            new String[] { ClipDescription.MIMETYPE_TEXT_PLAIN });
+    
+    @Override
+    public String[] getStreamTypes(Uri uri, String mimeTypeFilter) {
+        /**
+         *  Chooses the data stream type based on the incoming URI pattern.
+         */
+        switch (sUriMatcher.match(uri)) {
+
+            // If the pattern is for notes or live folders, return null. Data streams are not
+            // supported for this type of URI.
+            case SCORES:
+                return null;
+
+            // If the pattern is for note IDs and the MIME filter is text/plain, then return
+            // text/plain
+            case SCORE_ID:
+                return SCORE_STREAM_TYPES.filterMimeTypes(mimeTypeFilter);
+
+                // If the URI pattern doesn't match any permitted patterns, throws an exception.
+            default:
+                throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+    }
+    
+    @Override
+    public AssetFileDescriptor openTypedAssetFile(Uri uri, String mimeTypeFilter, Bundle opts)
+            throws FileNotFoundException {
+
+        // Checks to see if the MIME type filter matches a supported MIME type.
+        String[] mimeTypes = getStreamTypes(uri, mimeTypeFilter);
+
+        // If the MIME type is supported
+        if (mimeTypes != null) {
+
+            // Retrieves the note for this URI. Uses the query method defined for this provider,
+            // rather than using the database query method.
+            Cursor c = query(
+                    uri,                    // The URI of a note
+                    READ_SCORES_PROJECTION, // Gets a projection containing the note's ID, title,
+                                            // and contents
+                    null,                   // No WHERE clause, get all matching records
+                    null,                   // Since there is no WHERE clause, no selection criteria
+                    null                    // Use the default sort order (modification date,
+                                            // descending
+            );
+
+
+            // If the query fails or the cursor is empty, stop
+            if (c == null || !c.moveToFirst()) {
+
+                // If the cursor is empty, simply close the cursor and return
+                if (c != null) {
+                    c.close();
+                }
+
+                // If the cursor is null, throw an exception
+                throw new FileNotFoundException("Unable to query " + uri);
+            }
+
+            // Start a new thread that pipes the stream data back to the caller.
+            return new AssetFileDescriptor(
+                    openPipeHelper(uri, mimeTypes[0], opts, c, this), 0,
+                    AssetFileDescriptor.UNKNOWN_LENGTH);
+        }
+
+        // If the MIME type is not supported, return a read-only handle to the file.
+        return super.openTypedAssetFile(uri, mimeTypeFilter, opts);
+    }
+    
+    /**
+     * Implementation of {@link android.content.ContentProvider.PipeDataWriter}
+     * to perform the actual work of converting the data in one of cursors to a
+     * stream of data for the client to read.
+     */
+    @Override
+    public void writeDataToPipe(ParcelFileDescriptor output, Uri uri, String mimeType,
+            Bundle opts, Cursor c) {
+        // We currently only support conversion-to-text from a single note entry,
+        // so no need for cursor data type checking here.
+        FileOutputStream fout = new FileOutputStream(output.getFileDescriptor());
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new OutputStreamWriter(fout, "UTF-8"));
+            pw.println(c.getString(READ_NOTE_SCORE_INDEX));
+            pw.println(" ");
+            pw.println(c.getString(READ_NOTE_ATTEMPTS_INDEX));
+        } catch (UnsupportedEncodingException e) {
+            //Ignore
+        } finally {
+            c.close();
+            if (pw != null) {
+                pw.flush();
+            }
+            try {
+                fout.close();
+            } catch (IOException e) {
+            }
+        }
+    }
+
+	@Override
+	public int delete(Uri uri, String selection, String[] selectionArgs) {
+		return 0;
+	}
+	
+	/**
+     * This is called when a client calls
+     * {@link android.content.ContentResolver#insert(Uri, ContentValues)}.
+     * Inserts a new row into the database. This method sets up default values for any
+     * columns that are not included in the incoming map.
+     * If rows were inserted, then listeners are notified of the change.
+     * @return The row ID of the inserted row.
+     * @throws SQLException if the insertion fails.
+     */
+    @Override
+    public Uri insert(Uri uri, ContentValues initialValues) {
+
+        // Validates the incoming URI. Only the full provider URI is allowed for inserts.
+        if (sUriMatcher.match(uri) != SCORES) {
+            throw new IllegalArgumentException("Unknown URI " + uri);
+        }
+
+        // A map to hold the new record's values.
+        ContentValues values;
+
+        // If the incoming values map is not null, uses it for the new values.
+        if (initialValues != null) {
+            values = new ContentValues(initialValues);
+
+        } else {
+            // Otherwise, create a new value map
+            values = new ContentValues();
+        }
+
+        // Gets the current system time in milliseconds
+        Long now = Long.valueOf(System.currentTimeMillis());
+        
+        // If the values map doesn't contain note text, sets the value to an empty string.
+        if (values.containsKey(LevelStatus.COLUMN_NAME_ATTEMPTS) == false) {
+            values.put(LevelStatus.COLUMN_NAME_ATTEMPTS, 1);
+        }
+
+        // Opens the database object in "write" mode.
+        SQLiteDatabase db = mOpenHelper.getWritableDatabase();
+
+        // Performs the insert and returns the ID of the new note.
+        long rowId = db.insert(
+            LevelStatus.SCORES_TABLE_NAME,        // The table to insert into.
+            LevelStatus.COLUMN_NAME_SCORE,  // A hack, SQLite sets this column value to null
+                                             // if values is empty.
+            values                           // A map of column names, and the values to insert
+                                             // into the columns.
+        );
+
+        // If the insert succeeded, the row ID exists.
+        if (rowId > 0) {
+            // Creates a URI with the note ID pattern and the new row ID appended to it.
+            Uri noteUri = ContentUris.withAppendedId(LevelStatus.CONTENT_ID_URI_BASE, rowId);
+
+            // Notifies observers registered against this provider that the data changed.
+            getContext().getContentResolver().notifyChange(noteUri, null);
+            return noteUri;
+        }
+
+        // If the insert didn't succeed, then the rowID is <= 0. Throws an exception.
+        throw new SQLException("Failed to insert row into " + uri);
+    }
+
+	@Override
+	public int update(Uri uri, ContentValues values, String selection,
+			String[] selectionArgs) {
+		return 0;
+	}
+
+}

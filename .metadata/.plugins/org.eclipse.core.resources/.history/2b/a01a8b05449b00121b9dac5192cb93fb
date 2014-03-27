@@ -1,0 +1,11 @@
+package com.king.automata.rules;
+
+import com.king.automata.levelconfig.LevelConfig;
+
+public class VictoryConditionsFactory {
+	
+	public static VictoryConditionSet getVictoryConditions(LevelConfig levelConfig){
+		return null;
+	}
+	
+}

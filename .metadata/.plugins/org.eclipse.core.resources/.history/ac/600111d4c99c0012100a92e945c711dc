@@ -1,0 +1,16 @@
+package com.king.automata.data;
+
+/**
+ * Class to represent the service contract for a level's status.
+ * @author king
+ */
+public final class LevelStatus {
+	
+	public static final String AUTHORITY = "com.king.automata.LevelStatus";
+	
+	public static final String SCORES_TABLE_NAME = "SCORES";
+	
+	private LevelStatus(){}
+	
+	
+}
